@@ -1,0 +1,175 @@
+# 🧾 Expense Tracker App (CLI version)
+# Author: mohamed amine laaraj
+# Description: A simple command-line app to track income and expenses using a CSV file.
+# Features:
+# - Add, update, delete transactions
+# - View all transactions
+# - Filter by date range
+# - Calculate income/expense summaries
+
+import csv
+import os
+from datetime import datetime, timedelta
+
+file_name = 'expense_tracker_app.csv'
+
+# Ensure the CSV file exists and has a header
+def ensure_file_exists():
+    if not os.path.exists(file_name):
+        with open(file_name, 'w', newline='') as f:
+            fieldnames = ['id', 'title', 'amount', 'date', 'category']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+# Load transactions from CSV
+def load_data():
+    if not os.path.exists(file_name):
+        return []
+    try:
+        with open(file_name, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            return list(reader)
+    except csv.Error:
+        return []
+
+# Save transactions to CSV
+def save_data(data):
+    if not data:
+        return
+    fieldnames = ['id', 'title', 'amount', 'date', 'category']
+    with open(file_name, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
+
+# Add a transaction
+def add_transaction(data, title, amount, date, category):
+    existting_id = [int(item["id"]) for item in data] if data else [0]
+    new_id = max(existting_id) + 1
+    data.append({
+        "id": str(new_id),
+        "title": title,
+        "amount": amount,
+        "date": date,
+        "category": category
+    })
+    save_data(data)
+
+# Update a transaction by ID
+def update_transaction(data, id, title, amount, date, category):
+    for expenses in data:
+        if expenses["id"] == id:
+            expenses["title"] = title
+            expenses["amount"] = amount
+            expenses["date"] = date
+            expenses["category"] = category
+    save_data(data)
+
+# Delete a transaction by ID
+def delete_transaction(data, id_to_delete):
+    id_to_delete = str(id_to_delete)
+    before_count = len(data)
+    data[:] = [expense for expense in data if str(expense["id"]) != id_to_delete]
+    after_count = len(data)
+    fieldnames = ['id', 'title', 'amount', 'date', 'category']
+    with open(file_name, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
+
+# View all transactions
+def view_all_transactions(data):
+    for expenses in data:
+        print(f'id : {expenses["id"]}, title : {expenses["title"]}, amount : {expenses["amount"]}, date : {expenses["date"]}, category : {expenses["category"]}')
+
+# Summary of all transactions
+def all_transactions_summary(data):
+    negative_transaction = 0
+    positive_transaction = 0
+    for expence in data:
+        amount = float(expence["amount"])
+        if amount < 0:
+            negative_transaction += amount
+        else:
+            positive_transaction += amount
+    total = positive_transaction + negative_transaction
+    return total
+
+# Summary for a specific date range
+def summary_for_specifique_mounth(data, start, end):
+    start_date = datetime.strptime(start, '%Y-%m-%d')
+    end_date = datetime.strptime(end, '%Y-%m-%d')
+    for expense in data:
+        expense_date = datetime.strptime(expense['date'], '%Y-%m-%d')
+        if start_date <= expense_date <= end_date:
+            print(f'id : {expense["id"]}')
+            print(f'title : {expense["title"]}')
+            print(f'amount : {expense["amount"]}')
+            print(f'date : {expense["date"]}')
+            print(f'category : {expense["category"]}')
+            print('\n')
+
+# Main CLI loop
+if __name__ == '__main__':
+    print('Welcome to Trail')
+    app = True
+    while app:
+        print('---------------------------------------')
+        print('1: Add a transaction')
+        print('2: Update a transaction')
+        print('3: Delete a transaction')
+        print('4: View all transactions')
+        print('5: Summary of all transactions')
+        print('6: Summary for a specific date range')
+        print('7: Exit')
+        print('---------------------------------------')
+        c = input('What would you like to do: ')
+        if c == '1':
+            data = load_data()
+            title = input('Description: ')
+            type = input('Is it an expense or income: ')
+            amount = input('Amount: ')
+            amount = -abs(float(amount)) if type == 'expense' else abs(float(amount))
+            date = input("Enter date (YYYY-MM-DD): ")
+            try:
+                datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                print("Invalid date format.")
+            category = input('Category: ')
+            add_transaction(data, title, amount, date, category)
+            print('Transaction added successfully')
+        elif c == '2':
+            data = load_data()
+            id = input('Transaction ID: ')
+            new_title = input('Updated description: ')
+            type = input('Expense or income: ')
+            new_amount = input('Amount: ')
+            new_amount = -abs(float(new_amount)) if type == 'expense' else abs(float(new_amount))
+            new_date = input("Enter new date (YYYY-MM-DD): ")
+            try:
+                datetime.strptime(new_date, "%Y-%m-%d")
+            except ValueError:
+                print("Invalid date format.")
+            new_category = input('Updated category: ')
+            update_transaction(data, id, new_title, new_amount, new_date, new_category)
+            print('Transaction updated successfully')
+        elif c == '3':
+            data = load_data()
+            id = input('Transaction ID to delete: ')
+            delete_transaction(data, id)
+            print('Transaction deleted successfully')
+        elif c == '4':
+            data = load_data()
+            view_all_transactions(data)
+        elif c == '5':
+            data = load_data()
+            total = all_transactions_summary(data)
+            print(f'Total balance: {total}')
+        elif c == '6':
+            data = load_data()
+            start = input('Start date (YYYY-MM-DD): ')
+            end = input('End date (YYYY-MM-DD): ')
+            summary_for_specifique_mounth(data, start, end)
+        elif c == '7':
+            print('Thank you for using Trail')
+            app = False
